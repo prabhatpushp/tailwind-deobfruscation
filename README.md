@@ -17,7 +17,7 @@ This project provides functionality to deobfuscate Tailwind CSS class definition
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone <YOUR_GIT_URL>
+   git clone https://github.com/prabhatpushp/tailwind-deobfruscation
    cd tailwind deobfruscation
    ```
 2. Set up a virtual environment (optional but recommended):
