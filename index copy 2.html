@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>CSS Class Hasher</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }
+            textarea,
+            pre {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>CSS Class Hasher</h1>
+        <p>Paste your CSS classes below:</p>
+        <textarea id="cssInput" rows="10"></textarea>
+        <button onclick="handleButtonClick()">Generate Hash Mapping</button>
+
+        <h2>Output:</h2>
+        <pre id="output"></pre>
+
+        <script>
+            async function hashCSSClasses(cssString) {
+                const cssClasses = cssString.match(/\.[a-zA-Z0-9_-]+ *\{[^}]*\}/g);
+
+                if (!cssClasses) {
+                    return {};
+                }
+
+                const hashMapping = {};
+
+                for (const cssClass of cssClasses) {
+                    const className = cssClass.match(/\.[a-zA-Z0-9_-]+/)[0].substring(1);
+                    const classContent = cssClass.match(/\{[^}]*\}/)[0];
+                    const hash = await hashContent(classContent);
+                    hashMapping[hash] = className;
+                }
+
+                return hashMapping;
+            }
+
+            async function hashContent(content) {
+                const msgUint8 = new TextEncoder().encode(content);
+                const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+            }
+
+            async function handleButtonClick() {
+                const cssInput = document.getElementById("cssInput").value;
+                const output = document.getElementById("output");
+                const hashMapping = await hashCSSClasses(cssInput);
+                output.textContent = JSON.stringify(hashMapping, null, 4);
+            }
+        </script>
+    </body>
+</html>

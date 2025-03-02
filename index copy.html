@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Tailwind CSS Deobfuscator</title>
+        <style>
+            /* Basic styling for the input and output sections */
+            .container {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .input,
+            .output {
+                padding: 1rem;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-family: monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Tailwind CSS Deobfuscator</h1>
+        <div class="container">
+            <div class="input">
+                <h2>Input</h2>
+                <textarea id="input-html" rows="10" placeholder="Paste your HTML or JSX content with obfuscated Tailwind classes"></textarea>
+                <div>
+                    <p>Original Tailwind CSS Classes:</p>
+                    <textarea id="original-classes" rows="10" placeholder="Paste the original Tailwind CSS classes (one per line)"></textarea>
+                </div>
+                <div>
+                    <p>Deobfuscated Tailwind CSS Classes:</p>
+                    <textarea id="deobfuscated-classes" rows="10" placeholder="Paste the deobfuscated classes (one per line, corresponding to the original classes)"></textarea>
+                </div>
+                <button id="deobfuscate-btn">Deobfuscate</button>
+            </div>
+            <div class="output">
+                <h2>Output</h2>
+                <pre id="output-html"></pre>
+            </div>
+        </div>
+
+        <script>
+            const inputHtml = document.getElementById("input-html");
+            const originalClasses = document.getElementById("original-classes");
+            const deobfuscatedClasses = document.getElementById("deobfuscated-classes");
+            const outputHtml = document.getElementById("output-html");
+            const deobfuscateBtn = document.getElementById("deobfuscate-btn");
+
+            deobfuscateBtn.addEventListener("click", () => {
+                const htmlContent = inputHtml.value.trim();
+                const originalClassList = originalClasses.value.trim().split("\n");
+                const deobfuscatedClassList = deobfuscatedClasses.value.trim().split("\n");
+
+                if (!htmlContent || !originalClassList.length || !deobfuscatedClassList.length) {
+                    alert("Please provide all required inputs: HTML content, original Tailwind classes, and deobfuscated classes.");
+                    return;
+                }
+
+                // Create a mapping of original to deobfuscated classes (optional, but useful for reference)
+                const classMap = {};
+                for (let i = 0; i < originalClassList.length; i++) {
+                    classMap[originalClassList[i]] = deobfuscatedClassList[i] || ""; // Use empty string if no deobfuscated class exists
+                }
+
+                // Improved regex pattern to match various obfuscation patterns
+                const regex = /\b([a-zA-Z0-9-_]+)\b/g; // Matches any combination of letters, numbers, hyphens, and underscores
+
+                let deobfuscatedHtml = htmlContent.replace(regex, (match) => {
+                    // Check if the matched class exists in the original class list
+                    const originalClassIndex = originalClassList.indexOf(match);
+                    if (originalClassIndex !== -1) {
+                        // Use the corresponding deobfuscated class if available, otherwise remove the class
+                        return deobfuscatedClassList[originalClassIndex] || "";
+                    } else {
+                        // Class not found in originals, leave it as is
+                        return match;
+                    }
+                });
+
+                outputHtml.textContent = deobfuscatedHtml;
+            });
+        </script>
+    </body>
+</html>

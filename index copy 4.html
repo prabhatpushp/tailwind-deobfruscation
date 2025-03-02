@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Tailwind CSS Deobfuscator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            /* Additional custom styling */
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+
+            .input,
+            .output {
+                border-color: #e5e7eb;
+            }
+
+            button {
+                background-color: #4f46e5;
+                color: #ffffff;
+            }
+
+            button:hover {
+                background-color: #4338ca;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100">
+        <h1 class="text-3xl font-bold text-center mt-8">Tailwind CSS Deobfuscator</h1>
+        <div class="container mt-8">
+            <div class="input bg-white p-6 rounded-md shadow-md">
+                <h2 class="text-lg font-semibold">Input</h2>
+                <textarea id="input-html" rows="10" class="w-full mt-2 px-3 py-2 placeholder-gray-400 border rounded-md focus:outline-none focus:ring focus:ring-indigo-200"></textarea>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Obfuscated Tailwind CSS Classes:</p>
+                    <textarea id="obfuscated-classes" rows="10" class="w-full mt-2 px-3 py-2 placeholder-gray-400 border rounded-md focus:outline-none focus:ring focus:ring-indigo-200"></textarea>
+                </div>
+                <button id="deobfuscate-btn" class="mt-4 py-2 px-4 rounded-md shadow-sm hover:shadow-lg">Deobfuscate</button>
+            </div>
+            <div class="output bg-white mt-8 p-6 rounded-md shadow-md">
+                <h2 class="text-lg font-semibold">Output</h2>
+                <div id="output-html" class="mt-4 overflow-auto"></div>
+            </div>
+        </div>
+
+        <script>
+            // JavaScript remains unchanged
+            const inputHtml = document.getElementById("input-html");
+            const obfuscatedClasses = document.getElementById("obfuscated-classes");
+            const outputHtml = document.getElementById("output-html");
+            const deobfuscateBtn = document.getElementById("deobfuscate-btn");
+
+            async function hashCSSClasses(cssString) {
+                const cssClasses = cssString.match(/\.[^\s{}]+(?:\\.[^\s{}]+)* *\{[^}]*\}/g);
+
+                if (!cssClasses) {
+                    return {};
+                }
+
+                const hashMapping = {};
+
+                for (const cssClass of cssClasses) {
+                    const className = cssClass.match(/\.[^\s{}]+(?:\\.[^\s{}]+)*/)[0].substring(1);
+                    const classContent = cssClass.match(/\{([^}]*)\}/)[1].replace(/\\(.)/g, "$1"); // Remove escape characters
+                    const validClassName = className.split(/::|\[|\]|::before|::after|:not|\+/)[0]; // Extracting only the valid class name
+                    const hash = await hashContent(classContent);
+                    if (!hashMapping[hash]) {
+                        hashMapping[hash] = [validClassName];
+                    } else {
+                        hashMapping[hash].push(validClassName);
+                    }
+                }
+
+                return hashMapping;
+            }
+
+            async function hashContent(content) {
+                // remove all spaces, tabs, newlines
+                content = content.replace(/\s/g, "").replace(/\n/g, "").replace(/\t/g, "").replace(/\r/g, "").replace(/\f/g, "").replace(/\v/g, "");
+
+                const msgUint8 = new TextEncoder().encode(content);
+                const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+            }
+
+            function updateClassesInContent(content, classList) {
+                // Regular expression to match class names in HTML or JSX
+                const classRegex = /(?:class|className)\s*=\s*["']([^"']*)["']/g;
+
+                return content.replace(classRegex, (match, classes) => {
+                    const updatedClasses = classes
+                        .split(" ")
+                        .map((className) => classList[className] || className) // Replace old class with new class if exists in classList
+                        .join(" ");
+
+                    return match.replace(classes, updatedClasses);
+                });
+            }
+
+            deobfuscateBtn.addEventListener("click", async () => {
+                const htmlContent = inputHtml.value.trim();
+                const obfuscatedClassList = obfuscatedClasses.value.trim();
+
+                const obfuscatedHashMapping = await hashCSSClasses(obfuscatedClassList);
+                const deobfuscatedHashMapping = await fetch("hash_mapping.json").then((response) => response.json());
+
+                // Create a reverse mapping of deobfuscated hash to original class
+                const classList = {};
+                for (const key in obfuscatedHashMapping) {
+                    for (const className of obfuscatedHashMapping[key]) {
+                        const newClass = deobfuscatedHashMapping[key] || className;
+                        classList[className] = newClass;
+                    }
+                }
+
+                const deobfuscatedHtml = updateClassesInContent(htmlContent, classList);
+
+                outputHtml.innerHTML = deobfuscatedHtml;
+            });
+        </script>
+    </body>
+</html>
